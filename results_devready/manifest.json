@@ -1,0 +1,153 @@
+{
+  "artifact_status": "deterministic_exhaustive_evaluation",
+  "input": {
+    "config": "configs/full.yaml",
+    "config_file_sha256": "71e982ebdb60a2b80b19f58656855d1a704e4f0b867d91bd0c35d591aebb6791",
+    "config_scope": "source_bundle",
+    "config_semantic_digest": "a1d4bd13cd1458ba17dd73ed4957cf19b8cb69be4b7c89d84309f1a95fda3690",
+    "depth_bound": 16,
+    "state_bound": 2000000
+  },
+  "matrix": [
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": false,
+      "cell_id": "commit_only__resume_false__duplicate_false",
+      "decision_outcomes": [
+        "commit"
+      ],
+      "decision_profile": "commit_only"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": false,
+      "cell_id": "commit_only__resume_false__duplicate_true",
+      "decision_outcomes": [
+        "commit"
+      ],
+      "decision_profile": "commit_only"
+    },
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": true,
+      "cell_id": "commit_only__resume_true__duplicate_false",
+      "decision_outcomes": [
+        "commit"
+      ],
+      "decision_profile": "commit_only"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": true,
+      "cell_id": "commit_only__resume_true__duplicate_true",
+      "decision_outcomes": [
+        "commit"
+      ],
+      "decision_profile": "commit_only"
+    },
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": false,
+      "cell_id": "abort_only__resume_false__duplicate_false",
+      "decision_outcomes": [
+        "abort"
+      ],
+      "decision_profile": "abort_only"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": false,
+      "cell_id": "abort_only__resume_false__duplicate_true",
+      "decision_outcomes": [
+        "abort"
+      ],
+      "decision_profile": "abort_only"
+    },
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": true,
+      "cell_id": "abort_only__resume_true__duplicate_false",
+      "decision_outcomes": [
+        "abort"
+      ],
+      "decision_profile": "abort_only"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": true,
+      "cell_id": "abort_only__resume_true__duplicate_true",
+      "decision_outcomes": [
+        "abort"
+      ],
+      "decision_profile": "abort_only"
+    },
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": false,
+      "cell_id": "commit_and_abort__resume_false__duplicate_false",
+      "decision_outcomes": [
+        "commit",
+        "abort"
+      ],
+      "decision_profile": "commit_and_abort"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": false,
+      "cell_id": "commit_and_abort__resume_false__duplicate_true",
+      "decision_outcomes": [
+        "commit",
+        "abort"
+      ],
+      "decision_profile": "commit_and_abort"
+    },
+    {
+      "allow_duplicate_delivery": false,
+      "allow_resume": true,
+      "cell_id": "commit_and_abort__resume_true__duplicate_false",
+      "decision_outcomes": [
+        "commit",
+        "abort"
+      ],
+      "decision_profile": "commit_and_abort"
+    },
+    {
+      "allow_duplicate_delivery": true,
+      "allow_resume": true,
+      "cell_id": "commit_and_abort__resume_true__duplicate_true",
+      "decision_outcomes": [
+        "commit",
+        "abort"
+      ],
+      "decision_profile": "commit_and_abort"
+    }
+  ],
+  "outputs": {
+    "aggregate_metrics.json": {
+      "sha256": "9f00ad31fd063c60b0af4523d848627ebe2d25906f093b963801021e33ed2cc6"
+    },
+    "raw/records.jsonl": {
+      "records": 72,
+      "sha256": "31241c03374fe143cc8332084872855d7edb471cfe67c6e740ba036f41c79c3e"
+    }
+  },
+  "producer": {
+    "bundle_sha256": "6827f5f72b63ebfea708468c967664c1765d7a71fd50248dc80d1a485f3c6dcc",
+    "command": "python3 -m carry2pc evaluate-matrix --config <CONFIG> --output <OUTPUT>",
+    "files_sha256": {
+      "src/carry2pc/__init__.py": "762bef916dc2a4e5d7de3541f6522252c24c80aac3f98f6130cf982973ef198d",
+      "src/carry2pc/__main__.py": "496622aaeb732817260a47bb5ff063d3d9bb10b02b1f20207b13a4c2c186f450",
+      "src/carry2pc/canonical.py": "3981e3ee3185e2e6c09deb936bc0535d10c8924d92fde5bd2b45f436b14ebed4",
+      "src/carry2pc/certificates.py": "814e9f925913fd224aa06b748d1f7c12c790a02d086fb5dba2daafd283f0feeb",
+      "src/carry2pc/cli.py": "a39afc57d252216d66c2e804ce99e5fd3b296f87ae9ee3d764dd028f27f1c77a",
+      "src/carry2pc/config.py": "2ec5e06d5d173d8d153d0d10f938809d681bd9a8fa3c8b585dec176c23cfacdd",
+      "src/carry2pc/evaluation.py": "8a30eac13f966be617ec8c836d44f37cba4932bd0307f4809dd0e3836d411250",
+      "src/carry2pc/modelcheck.py": "1a000c25845a3e49bf71d5cf35966cc1fdc272bfcd30c8b08dd9354594fc2631",
+      "src/carry2pc/protocol.py": "91850b56afd9c4ca3c16841aa0ada35a263f432de8669f930e0529c1f09c292b",
+      "src/carry2pc/schemas.py": "6174316a2e8dcbe6231e4846819ac7111d33d1ff6c650568bec1750da5177540",
+      "src/carry2pc/types.py": "1ab3ef70676fe074baafd93e525613ea8151999897b72fc29bbff4d2c9b60923",
+      "src/carry2pc/verification.py": "48319d61485fba053f34a6c33bc6ba23049ef589f59490fd9fe0ad39c624a525"
+    }
+  },
+  "schema_version": "carry2pc/evaluation_manifest/v2"
+}

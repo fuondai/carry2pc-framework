@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools==81.0.0", "wheel==0.47.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carry2pc"
+version = "0.1.0"
+description = "Executable model of obligation-preserving mobile digital-twin handover."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10,<3.15"
+dependencies = [
+  "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+figures = [
+  "matplotlib==3.10.8",
+  "SciencePlots==2.2.1",
+]
+test = [
+  "pytest==9.0.3",
+]
+
+[project.scripts]
+carry2pc = "carry2pc.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.data-files]
+"share/carry2pc/configs" = ["configs/full.yaml"]
+"share/carry2pc/artifacts" = ["artifacts/reference_vector.json"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

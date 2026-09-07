@@ -1,0 +1,21 @@
+schema_version: 1
+scenario:
+  twin_id: twin-mobile-0
+  tx_id: transaction-0
+  source: shard-a
+  target: shard-b
+  initial_value_json: '{"temperature":20}'
+  intent_value_json: '{"temperature":21}'
+  command_payload_json: '{"command":"apply"}'
+bounds:
+  max_depth: 16
+  max_states: 2000000
+  decision_outcomes: [commit, abort]
+  allow_resume: true
+  allow_duplicate_delivery: true
+mutants:
+  - omit_obligation_on_install
+  - dual_active_on_activate
+  - epoch_guard_converts_commit_to_abort
+  - rewrite_intent_on_install
+  - duplicate_outbox_enqueue

@@ -1,0 +1,116 @@
+{
+  "schema_version": 2,
+  "artifact": "carry2pc bounded-state checker",
+  "config_digest": "a1d4bd13cd1458ba17dd73ed4957cf19b8cb69be4b7c89d84309f1a95fda3690",
+  "compliant": {
+    "bounded_complete": true,
+    "states_discovered": 338,
+    "protocol_states_discovered": 318,
+    "states_explored": 338,
+    "transitions_considered": 655,
+    "states_at_depth_cut": 0,
+    "max_states_reached": false,
+    "true_overlap_actions": [
+      "prepare_yes",
+      "freeze",
+      "install",
+      "os_commit_activate",
+      "deliver_activate_target",
+      "decide_commit",
+      "deliver_decision_target",
+      "process_decision_target"
+    ],
+    "true_overlap_state_sha256": "01ee85c9aa535ccfcd62a76049018a0b605f979946c0adb88ec770e5f7438c60"
+  },
+  "mutants": {
+    "omit_obligation_on_install": {
+      "bounded_complete": true,
+      "states_discovered": 250,
+      "protocol_states_discovered": 250,
+      "states_explored": 250,
+      "transitions_considered": 481,
+      "states_at_depth_cut": 0,
+      "max_states_reached": false,
+      "expected_invariant": "obligation_persistence",
+      "witness_actions": [
+        "prepare_yes",
+        "freeze",
+        "install",
+        "os_commit_activate"
+      ],
+      "witness_state_sha256": "ec69fa078a0661a0de75beef7393c5b7e1d213f63746af95799b199fe1c4b80e"
+    },
+    "dual_active_on_activate": {
+      "bounded_complete": true,
+      "states_discovered": 210,
+      "protocol_states_discovered": 210,
+      "states_explored": 210,
+      "transitions_considered": 423,
+      "states_at_depth_cut": 0,
+      "max_states_reached": false,
+      "expected_invariant": "ownership_uniqueness",
+      "witness_actions": [
+        "freeze",
+        "install",
+        "os_commit_activate"
+      ],
+      "witness_state_sha256": "954181dcd9ccbd0c8e966d7477b52bb98e0045e52d105200a3780b68d0d75585"
+    },
+    "epoch_guard_converts_commit_to_abort": {
+      "bounded_complete": true,
+      "states_discovered": 322,
+      "protocol_states_discovered": 310,
+      "states_explored": 322,
+      "transitions_considered": 635,
+      "states_at_depth_cut": 0,
+      "max_states_reached": false,
+      "expected_invariant": "decision_consistency",
+      "witness_actions": [
+        "prepare_yes",
+        "decide_commit",
+        "freeze",
+        "install",
+        "deliver_decision_target",
+        "os_commit_activate",
+        "deliver_activate_target",
+        "epoch_guard_converts_commit_to_abort"
+      ],
+      "witness_state_sha256": "69d24c1aa1d74704d5c235f2aa472bfd3c1f75e1edaa2e97de99f9a2c3501041"
+    },
+    "rewrite_intent_on_install": {
+      "bounded_complete": true,
+      "states_discovered": 169,
+      "protocol_states_discovered": 169,
+      "states_explored": 169,
+      "transitions_considered": 301,
+      "states_at_depth_cut": 0,
+      "max_states_reached": false,
+      "expected_invariant": "intent_fidelity",
+      "witness_actions": [
+        "prepare_yes",
+        "freeze",
+        "install"
+      ],
+      "witness_state_sha256": "274a2f2d677e4b8c53252739059878e0e7818ce14e02162074c08dd412eb8bf4"
+    },
+    "duplicate_outbox_enqueue": {
+      "bounded_complete": true,
+      "states_discovered": 315,
+      "protocol_states_discovered": 297,
+      "states_explored": 315,
+      "transitions_considered": 634,
+      "states_at_depth_cut": 0,
+      "max_states_reached": false,
+      "expected_invariant": "durable_enqueue_integrity",
+      "witness_actions": [
+        "prepare_yes",
+        "decide_commit",
+        "deliver_decision_source",
+        "deliver_decision_source",
+        "process_decision_source",
+        "reprocess_decision_source"
+      ],
+      "witness_state_sha256": "46f8f25a0ae6d09e7b0a8cba7567cedd11f6f95ceb4ac50e8aef07671fdbe9a7"
+    }
+  }
+}

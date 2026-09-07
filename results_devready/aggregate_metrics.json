@@ -1,0 +1,396 @@
+{
+  "all_applicable_mutant_witnesses_found": true,
+  "all_compliant_cells_safe": true,
+  "all_nonapplicable_mutants_unwitnessed": true,
+  "all_overlap_applicable_compliant_cells_witnessed": true,
+  "all_overlap_nonapplicable_compliant_cells_unwitnessed": true,
+  "all_runs_bounded_complete": true,
+  "applicable_mutant_runs": 48,
+  "artifact_status": "deterministic_exhaustive_evaluation",
+  "capsule_wire_contract": {
+    "case": "capsule_wire_contract",
+    "fresh_reconstruction": true,
+    "malformed_rejected": true,
+    "passed": true,
+    "root_equal": true,
+    "wire_bytes": 1272,
+    "wrong_root_rejected": true
+  },
+  "command_namespace_contract": {
+    "binding_sha256": "fdb038ef45f2db07ae9b125e1dfe3b8540748fde99ad508e9ad012ab4c8cc4ea",
+    "bindings": 2,
+    "case": "command_namespace_contract",
+    "passed": true
+  },
+  "compliant_overlap_cells": 8,
+  "compliant_safe_cells": 12,
+  "configuration_cells": 12,
+  "decision_record_binding_contract": {
+    "abort_record_digest": "038cbe201f0c040b83e5b4ff5e8630b5c9da0060d5b951b434eec505e5828f73",
+    "abort_substitute_quorum_valid": true,
+    "alternate_commit_proof_digest": "3ad9f1829ca000e17d058d01c5beccf6d972933a57b6645c6f24a0e3c8877ba3",
+    "alternate_commit_quorum_valid": true,
+    "alternate_commit_record_digest": "1222c9b62ee87a7b8f302f6a3ca9d86a2fd339d70227b3c94f9dcac4ad11fca5",
+    "case": "semantic_record_accepts_alternate_qc_and_rejects_abort_record",
+    "commit_proof_digest": "b5b7d7212a9a820981cacce7e2e69ae7b9448e086d58d316b642b6c1ff9aa49b",
+    "commit_record_digest": "1222c9b62ee87a7b8f302f6a3ca9d86a2fd339d70227b3c94f9dcac4ad11fca5",
+    "correct_commit_applied": true,
+    "evidence_sha256": "2f06ef9c13b309a1ef291efd37527ceab3e33774f70648ed5c465fcc8dbe3126",
+    "inbox_empty_after_correct_process": true,
+    "passed": true,
+    "rejection": "DecisionQC does not certify the unique TDS record",
+    "substitution_rejected": true,
+    "substitution_state_unchanged": true,
+    "tombstone_decision": "commit",
+    "tombstone_record_digest": "1222c9b62ee87a7b8f302f6a3ca9d86a2fd339d70227b3c94f9dcac4ad11fca5"
+  },
+  "depth_frontier_states": 0,
+  "overlap_applicable_compliant_cells": 8,
+  "participant_migration_contract": {
+    "case": "two_logical_participants_one_migrates",
+    "conflicting_update_blocked": true,
+    "logical_participants": 2,
+    "migrated_participants": 1,
+    "migrated_resource_keys": 2,
+    "moving_owner_epoch": 1,
+    "passed": true,
+    "same_decision_record": true,
+    "stationary_owner_epoch": 0
+  },
+  "passed": true,
+  "post_activation_update_interleaving_contract": {
+    "capsule_version": 2,
+    "case": "post_activation_nonconflicting_update_resolve_interleaving",
+    "each_command_enqueued_once": true,
+    "outbox_bindings": 2,
+    "owner_epoch": 1,
+    "passed": true,
+    "same_final_projection": true,
+    "schedules": 2
+  },
+  "reachable_transition_conformance": {
+    "case": "reachable_transition_projection",
+    "checked_transitions": 635,
+    "mismatches": [],
+    "passed": true,
+    "reachable_product_states": 330,
+    "reachable_states": 318
+  },
+  "reference_implementation_conformance": {
+    "cases": 3,
+    "checks": [
+      {
+        "case": "activate_commit_redelivery",
+        "checkpoint_results": [
+          {
+            "action": "initial",
+            "matched": true,
+            "state_sha256": "ef42c9ca33ed6300bbfa86cd658ab1e0e06b82387798db22bd3c905a01fa7c9a"
+          },
+          {
+            "action": "prepare_yes",
+            "matched": true,
+            "state_sha256": "2a34f7403e2da1a13be73938292e20220b591273b8260bef9768afc085a18da4"
+          },
+          {
+            "action": "freeze",
+            "matched": true,
+            "state_sha256": "51526061d40496a70703587fcc6f5d4c4c76a1c2165254ff6aa874b33470670b"
+          },
+          {
+            "action": "install",
+            "matched": true,
+            "state_sha256": "5c93cfeae11b26f327a5e43b0ebb35357e48ceb7cf1b095d2547f7c11aa2bd17"
+          },
+          {
+            "action": "os_commit_activate",
+            "matched": true,
+            "state_sha256": "536b31b56589f135f4144a6422bdb174f3130cbb15679c9c319e274f29f33e47"
+          },
+          {
+            "action": "deliver_activate_target",
+            "matched": true,
+            "state_sha256": "666639ed4a9ed17b797f9a646c95c7bfe86f1d10535a22ea905710c38e675f18"
+          },
+          {
+            "action": "deliver_activate_source",
+            "matched": true,
+            "state_sha256": "84ec9cd1c3318e5450360f1a395d702bd40aef8bb3309132e9f068774aa8d8a5"
+          },
+          {
+            "action": "decide_commit",
+            "matched": true,
+            "state_sha256": "3ffbbb6eec2844524ac2d353696f1b05a8ff39fbf1982e300f7df983caae1c0c"
+          },
+          {
+            "action": "deliver_decision_target",
+            "matched": true,
+            "state_sha256": "98c30196536c1d9c3749c01d2725a790d2bd02477de1f69caa59555cb9612c40"
+          },
+          {
+            "action": "process_decision_target",
+            "matched": true,
+            "state_sha256": "c060f8dc34698bdbc1324c038d1baed65baef9543010a1279109594ca1eea9c8"
+          },
+          {
+            "action": "deliver_decision_target",
+            "matched": true,
+            "state_sha256": "2cc397efa91b8f3e24aa1e05ca13c7628a61d3c06633c69f44f504a8f011c8c1"
+          },
+          {
+            "action": "reprocess_decision_target",
+            "matched": true,
+            "state_sha256": "ef1b55b292987f041a156b73edfc2d9d53e9fe5905c90584698b6ec06aca0327"
+          }
+        ],
+        "checkpoints": 12,
+        "final_checkpoint_sha256": "ef1b55b292987f041a156b73edfc2d9d53e9fe5905c90584698b6ec06aca0327",
+        "matched_checkpoints": 12,
+        "passed": true
+      },
+      {
+        "case": "direct_resume_abort",
+        "checkpoint_results": [
+          {
+            "action": "initial",
+            "matched": true,
+            "state_sha256": "f2f764803c170bf256b97a015e043b01a66614ff495891adaeed22780387d97f"
+          },
+          {
+            "action": "prepare_yes",
+            "matched": true,
+            "state_sha256": "4f2542768762a868a996cfb1534b78df528886a90638bd859b516a760db9eb85"
+          },
+          {
+            "action": "freeze",
+            "matched": true,
+            "state_sha256": "f6cb24113b80ed20d6c7ee219561f0a76f31e1384e372ddf2ec4acdbefb84faf"
+          },
+          {
+            "action": "os_commit_resume",
+            "matched": true,
+            "state_sha256": "791c86542de7290529b61b14fdea531c74c39a5544bb4a216adc0a61561809d1"
+          },
+          {
+            "action": "deliver_resume_target",
+            "matched": true,
+            "state_sha256": "13d4ac05c03cc7e6324de5f736f14ab044366bbfcf1798870b260799209cd76e"
+          },
+          {
+            "action": "deliver_resume_source",
+            "matched": true,
+            "state_sha256": "9869f5d2c1c037587857ff69b2a1350d9955592170387cd4da2093d4960a6c94"
+          },
+          {
+            "action": "decide_abort",
+            "matched": true,
+            "state_sha256": "8d4bad243860c4e53a1e73e98bb97e42e168f841fd6b65798e5bfe9ed0a6ab8e"
+          },
+          {
+            "action": "deliver_decision_source",
+            "matched": true,
+            "state_sha256": "1816b35a6f7073c46a91fee883a90a58f332a32dbfa4e73268a392ae6ad328ff"
+          },
+          {
+            "action": "process_decision_source",
+            "matched": true,
+            "state_sha256": "d251405cc390464aa388b9f23413605fceb1e6ff2447e82cb13cd593b78cce00"
+          }
+        ],
+        "checkpoints": 9,
+        "final_checkpoint_sha256": "d251405cc390464aa388b9f23413605fceb1e6ff2447e82cb13cd593b78cce00",
+        "matched_checkpoints": 9,
+        "passed": true
+      },
+      {
+        "case": "installed_resume_abort",
+        "checkpoint_results": [
+          {
+            "action": "initial",
+            "matched": true,
+            "state_sha256": "e54315adf2e862e339ae24adcaa09657e52ec2274b8f4d82bbce594ec9f2c387"
+          },
+          {
+            "action": "prepare_yes",
+            "matched": true,
+            "state_sha256": "485c824acfd087ea5e587ae92987d4bed07234dd829d84d7c7aa813154eb21d1"
+          },
+          {
+            "action": "freeze",
+            "matched": true,
+            "state_sha256": "6279f70b1119ff533bfafa6dc57da9a9e97a279460b2fa6336033b93cbb4b4a7"
+          },
+          {
+            "action": "install",
+            "matched": true,
+            "state_sha256": "152e23c2d4b4d52de299c28139a5bb20f67ca95ac0cf224cabda3c06ae525740"
+          },
+          {
+            "action": "os_commit_resume",
+            "matched": true,
+            "state_sha256": "a26de80d9f99f312a0f8f94ae9c243a98512d66620963d87c38faa8fc1978c1e"
+          },
+          {
+            "action": "deliver_resume_target",
+            "matched": true,
+            "state_sha256": "f81c4a3f91c1842584cf29becb26c56332724005c517a704a3a7d91209ae968d"
+          },
+          {
+            "action": "deliver_resume_source",
+            "matched": true,
+            "state_sha256": "89f3d572f5b56882f539c177007912630cbfbe23a92ea377b4fdbb3838601f5f"
+          },
+          {
+            "action": "decide_abort",
+            "matched": true,
+            "state_sha256": "6d4f6c4ee9bfdd27983585c9e62e195c483560d9dee00683ea572d705744fd0d"
+          },
+          {
+            "action": "deliver_decision_source",
+            "matched": true,
+            "state_sha256": "c60acfe4486d8ec3a8366847480ae4791e2b1a755f318f49c0cb25ba848af08d"
+          },
+          {
+            "action": "process_decision_source",
+            "matched": true,
+            "state_sha256": "0f65e7c7faf705db632a434c6273d0455ff90e3c5c004b7548c47a998285a95c"
+          }
+        ],
+        "checkpoints": 10,
+        "final_checkpoint_sha256": "0f65e7c7faf705db632a434c6273d0455ff90e3c5c004b7548c47a998285a95c",
+        "matched_checkpoints": 10,
+        "passed": true
+      }
+    ],
+    "passed": 3
+  },
+  "schema_version": "carry2pc/evaluation_metrics/v2",
+  "sequential_composition_contract": {
+    "capsule_version": 2,
+    "case": "two_obligations_update_two_sequential_handovers",
+    "handover_count": 2,
+    "obligations_at_second_install": 2,
+    "outbox_bindings": 2,
+    "owner_epoch": 2,
+    "passed": true,
+    "resolved_obligations": 2,
+    "root_equalities": [
+      true,
+      true
+    ]
+  },
+  "service_group_binding_contract": {
+    "case": "service_group_binding_contract",
+    "cross_group_decision_rejected": true,
+    "cross_group_freeze_rejected": true,
+    "passed": true
+  },
+  "state_cap_hits": 0,
+  "terminal_lineage_redelivery_contract": {
+    "activate_checkpoint_equal": true,
+    "activation_lineages_distinct": true,
+    "active_epoch": 3,
+    "active_owner": "lineage-b",
+    "all_terminal_pending_lineages_cleared": true,
+    "case": "stale_terminal_qcs_across_restored_interleaved_lineages",
+    "evidence_sha256": "199d0684901329f917baf5fe5c50b23a77b4d5e5cc59c302005726a5b83ac621",
+    "passed": true,
+    "redelivery_schedules_checked": 10,
+    "resume_active_epoch": 1,
+    "resume_active_owner": "lineage-c",
+    "resume_checkpoint_equal": true,
+    "resume_lineages_distinct": true,
+    "reused_target_delivery_stutter": true,
+    "stale_activate_delivery_stutter": true,
+    "stale_resume_delivery_stutter": true,
+    "terminal_modes": {
+      "lineage-a": "fenced",
+      "lineage-b": "active",
+      "lineage-c": "fenced"
+    }
+  },
+  "total_exhaustive_runs": 72,
+  "total_states_explored": 7252,
+  "total_transitions_considered": 12960,
+  "variant_count_per_cell": 6,
+  "variant_rows": [
+    {
+      "applicable_cells": 0,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": null,
+      "shortest_witness_depth": null,
+      "states_explored_max": 338,
+      "states_explored_min": 42,
+      "transitions_considered_max": 655,
+      "transitions_considered_min": 64,
+      "variant": "compliant",
+      "witness_cells": 0
+    },
+    {
+      "applicable_cells": 12,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": "obligation_persistence",
+      "shortest_witness_depth": 4,
+      "states_explored_max": 250,
+      "states_explored_min": 24,
+      "transitions_considered_max": 481,
+      "transitions_considered_min": 33,
+      "variant": "omit_obligation_on_install",
+      "witness_cells": 12
+    },
+    {
+      "applicable_cells": 12,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": "ownership_uniqueness",
+      "shortest_witness_depth": 3,
+      "states_explored_max": 210,
+      "states_explored_min": 16,
+      "transitions_considered_max": 423,
+      "transitions_considered_min": 25,
+      "variant": "dual_active_on_activate",
+      "witness_cells": 12
+    },
+    {
+      "applicable_cells": 8,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": "decision_consistency",
+      "shortest_witness_depth": 8,
+      "states_explored_max": 322,
+      "states_explored_min": 42,
+      "transitions_considered_max": 635,
+      "transitions_considered_min": 64,
+      "variant": "epoch_guard_converts_commit_to_abort",
+      "witness_cells": 8
+    },
+    {
+      "applicable_cells": 12,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": "intent_fidelity",
+      "shortest_witness_depth": 3,
+      "states_explored_max": 169,
+      "states_explored_min": 20,
+      "transitions_considered_max": 301,
+      "transitions_considered_min": 26,
+      "variant": "rewrite_intent_on_install",
+      "witness_cells": 12
+    },
+    {
+      "applicable_cells": 4,
+      "bounded_complete_cells": 12,
+      "cells": 12,
+      "expected_invariant": "durable_enqueue_integrity",
+      "shortest_witness_depth": 6,
+      "states_explored_max": 315,
+      "states_explored_min": 42,
+      "transitions_considered_max": 634,
+      "transitions_considered_min": 64,
+      "variant": "duplicate_outbox_enqueue",
+      "witness_cells": 4
+    }
+  ]
+}
