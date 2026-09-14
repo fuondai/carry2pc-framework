@@ -19,7 +19,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --no-deps .
 ```
 
-## Reviewer check
+## Reference verification
 
 Run the bounded reference-vector gate:
 
@@ -52,22 +52,22 @@ python -m pip install '.[test]'
 python -m pytest -q
 ```
 
-The regressions include canonical capsule serialization and target-side parsing,
-malformed, wrong-root, owner-detached, and tombstone-detached transfer
-rejection, service-specific quorum binding, write-lock coverage,
-post-activation resolution, and duplicate delivery.
-The suite also exercises DecisionQC/YESQC evidence restoration, rejects
-cross-shard YES substitution, and carries obligations through two sequential
-handovers with different source shards. Focused transition regressions also
-require Prepare retries to reproduce the same canonical pending record, reject
-terminal transaction identifiers and record rebinding, and prevent Install from
-overwriting a target whose prior transfer lineage awaits terminal delivery.
+The regressions cover canonical capsule serialization and target-side parsing,
+malformed, wrong-root, owner-detached, and tombstone-detached transfers,
+service-specific quorum binding, write-lock coverage, post-activation resolution,
+and duplicate delivery. The suite also exercises DecisionQC/YESQC evidence
+restoration, cross-shard YES substitution protection, and obligations carried
+through two sequential handovers with different source shards. Focused transition
+regressions require Prepare retries to reproduce the same canonical pending
+record, validate terminal transaction identifiers and record rebinding, and
+prevent Install from overwriting a target whose prior transfer lineage awaits
+terminal delivery.
 Freeze retries for the same target return the stored FreezeQC without allocating
 a new cut or transfer identifier.
 
-These focused regressions validate implementation guards only. The retained
-72-run matrix and its manuscript figures predate these cases and were not rerun
-or reinterpreted as evidence for them.
+These focused regressions extend the guard coverage; the retained 72-run matrix
+and its manuscript figures remain the fixed reproducible baseline for the
+reported counts.
 
 ## Evaluation producer
 
@@ -88,14 +88,14 @@ are not part of the source distribution.
 
 ## Scope
 
-The executable is a protocol abstraction. Quorum proofs model authorization by
-a configured `3f+1` group; they are not production signatures. Collision
-resistance, replicated-state-machine durability, and physical actuator
-deduplication are explicit environment contracts. A successor must restore the
-durable TDS decision record and the source YES record for each committed
-tombstone, as well as every unresolved YES record, before validating historical
-evidence. An absent-participant ABORT instead uses its domain-separated no-intent
-digest. The capsule carries the state needed for resolution, while those service
-records remain the recovery authority. Post-activation `Update` calls are
-prevalidated, RSM-ordered entries; retry deduplication is an external
-transaction-layer contract.
+The executable is a deterministic protocol model. Quorum proofs use a configured
+`3f+1` group and certificate contracts for canonical subjects, signer membership,
+and threshold authorization. Collision resistance, replicated-state-machine
+durability, and physical actuator deduplication are represented as environment
+contracts. Before validating historical evidence, a successor restores the
+durable TDS decision record, the source YES record for each committed tombstone,
+and every unresolved YES record. An absent-participant ABORT uses its
+domain-separated no-intent digest. The capsule carries the state needed for
+resolution, while those service records remain the recovery authority.
+Post-activation `Update` calls are prevalidated, RSM-ordered entries and retry
+deduplication is an explicit transaction-layer rule.

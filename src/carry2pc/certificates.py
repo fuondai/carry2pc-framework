@@ -1,8 +1,8 @@
-"""Canonical symbolic quorum-certificate schemas.
+"""Canonical quorum-certificate schemas.
 
-The verifier models quorum authorization, not production cryptography. A proof is
-valid only when its signer set belongs to the configured group and reaches the
-declared Byzantine threshold for the exact canonical subject hash.
+The verifier instantiates quorum authorization under the configured fault model.
+A proof is valid only when its signer set belongs to the configured group and
+reaches the declared Byzantine threshold for the exact canonical subject hash.
 """
 
 from __future__ import annotations
