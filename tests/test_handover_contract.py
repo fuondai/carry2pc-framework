@@ -151,6 +151,17 @@ def test_install_rejects_malformed_and_wrong_root_capsule_bytes() -> None:
     ].capsule
 
 
+def test_install_rejects_duplicate_json_keys_as_noncanonical_bytes() -> None:
+    protocol, source, target, twin_id = _protocol()
+    freeze = protocol.freeze(twin_id=twin_id, target=target)
+    wire = capsule_to_bytes(protocol.copies[(source, twin_id)].capsule)
+    duplicate_version = b'{"version":0,' + wire[1:]
+
+    with pytest.raises(ProtocolError, match="malformed capsule bytes"):
+        protocol.install(freeze, capsule_bytes=duplicate_version)
+    assert (target, twin_id) not in protocol.copies
+
+
 def test_install_rejects_invalid_nested_versions() -> None:
     protocol, source, target, twin_id = _protocol()
     protocol.prepare(
@@ -220,6 +231,40 @@ def test_install_rejects_tombstone_detached_from_tds_record() -> None:
 
     with pytest.raises(ProtocolError, match="unique TDS record"):
         protocol.install(freeze)
+
+
+def test_install_requires_historical_yes_for_a_committed_tombstone() -> None:
+    protocol, source, target, twin_id = _protocol()
+    tx_id = "tx-terminal-proof"
+    yes = protocol.prepare(
+        tx_id=tx_id,
+        twin_id=twin_id,
+        participant_set=(twin_id,),
+        reads=(),
+        writes=(WriteIntent("value", "2"),),
+        locks=("value",),
+    )
+    decision = protocol.decide(
+        tx_id=tx_id,
+        decision=Decision.COMMIT,
+        participant_set=(twin_id,),
+        yes_certificates=(yes,),
+    )
+    protocol.resolve(twin_id=twin_id, decision_certificate=decision)
+    freeze = protocol.freeze(twin_id=twin_id, target=target)
+    protocol.yes_history.clear()
+
+    with pytest.raises(ProtocolError, match="certified intent"):
+        protocol.install(freeze)
+    assert (target, twin_id) not in protocol.copies
+
+    protocol.restore_decision_evidence(
+        decision,
+        (yes,),
+        expected_source_groups={twin_id: protocol.shard_group(source)},
+    )
+    install = protocol.install(freeze)
+    assert install.target == target
 
 
 def test_service_specific_quorums_reject_cross_group_substitution() -> None:
@@ -323,6 +368,153 @@ def test_prepare_rejects_write_without_matching_lock() -> None:
         )
 
 
+def test_freeze_retry_returns_the_stored_certificate() -> None:
+    protocol, _source, target, twin_id = _protocol()
+    freeze = protocol.freeze(twin_id=twin_id, target=target)
+    install = protocol.install(freeze)
+
+    retry = protocol.freeze(twin_id=twin_id, target=target)
+
+    assert retry == freeze
+    assert protocol.handovers[freeze.transfer_id].install == install
+    assert protocol._log_cut == 1
+    assert len(protocol.handovers) == 1
+
+    with pytest.raises(ProtocolError, match="different handover target"):
+        protocol.freeze(twin_id=twin_id, target="shard-c")
+
+
+def test_active_owner_rejects_an_uncleared_pending_lineage() -> None:
+    protocol, source, _target, twin_id = _protocol()
+    active = protocol.copies[(source, twin_id)]
+    object.__setattr__(active, "pending_transfer_id", "orphaned-transfer")
+
+    with pytest.raises(ProtocolError, match="unresolved transfer lineage"):
+        protocol.active_twin(twin_id)
+
+
+def test_prepare_retry_is_idempotent_only_for_the_same_pending_record() -> None:
+    protocol, _source, target, twin_id = _protocol()
+    tx_id = "tx-prepare-retry"
+    command = CommandIntent(
+        stable_command_id(twin_id, tx_id, 0),
+        '{"command":"apply"}',
+    )
+    arguments = {
+        "tx_id": tx_id,
+        "twin_id": twin_id,
+        "participant_set": (twin_id,),
+        "reads": (ReadVersion("value", 0),),
+        "writes": (WriteIntent("value", "4"),),
+        "locks": ("value",),
+        "commands": (command,),
+    }
+
+    first = protocol.prepare(**arguments)
+    freeze = protocol.freeze(twin_id=twin_id, target=target)
+    protocol.activate(protocol.install(freeze))
+    capsule_before_retry = protocol.active_twin(twin_id).capsule
+    second = protocol.prepare(**arguments)
+
+    assert second == first
+    assert second.prepare_epoch == 0
+    assert protocol.active_twin(twin_id).capsule == capsule_before_retry
+    assert len(protocol.active_twin(twin_id).capsule.prepared) == 1
+
+    with pytest.raises(ProtocolError, match="cannot be rebound"):
+        protocol.prepare(
+            **{
+                **arguments,
+                "writes": (WriteIntent("value", "5"),),
+            }
+        )
+    assert protocol.active_twin(twin_id).capsule == capsule_before_retry
+
+
+def test_prepare_rejects_a_terminal_transaction_identifier() -> None:
+    protocol, _source, _target, twin_id = _protocol()
+    tx_id = "tx-terminal-prepare"
+    decision = protocol.decide(
+        tx_id=tx_id,
+        decision=Decision.ABORT,
+        participant_set=(twin_id,),
+    )
+    protocol.resolve(twin_id=twin_id, decision_certificate=decision)
+
+    with pytest.raises(ProtocolError, match="terminal decision"):
+        protocol.prepare(
+            tx_id=tx_id,
+            twin_id=twin_id,
+            participant_set=(twin_id,),
+            reads=(),
+            writes=(WriteIntent("value", "4"),),
+            locks=("value",),
+        )
+
+    capsule = protocol.active_twin(twin_id).capsule
+    assert capsule.obligation(tx_id) is None
+    assert capsule.tombstone(tx_id) is not None
+
+
+def test_return_install_waits_for_prior_activate_delivery_at_target() -> None:
+    protocol, source, target, twin_id = _protocol()
+    first_freeze = protocol.freeze(twin_id=twin_id, target=target)
+    first_install = protocol.install(first_freeze)
+    activation = protocol.commit_activate(first_install)
+    protocol.deliver_activate(activation, shard_id=target)
+
+    return_freeze = protocol.freeze(twin_id=twin_id, target=source)
+    with pytest.raises(ProtocolError, match="unresolved local transfer lineage"):
+        protocol.install(return_freeze)
+    assert protocol.copies[(source, twin_id)].pending_transfer_id == (
+        first_freeze.transfer_id
+    )
+
+    protocol.deliver_activate(activation, shard_id=source)
+    return_install = protocol.install(return_freeze)
+    assert return_install.target == source
+    assert protocol.copies[(source, twin_id)].pending_transfer_id == (
+        return_freeze.transfer_id
+    )
+
+
+def test_new_install_waits_for_prior_resume_delivery_at_target() -> None:
+    protocol, source, target, twin_id, first_install = _staged_handover()
+    first_freeze = protocol.handovers[first_install.transfer_id].freeze
+    resume = protocol.commit_resume(first_freeze)
+    protocol.deliver_resume(resume, shard_id=source)
+
+    retry_freeze = protocol.freeze(twin_id=twin_id, target=target)
+    with pytest.raises(ProtocolError, match="unresolved local transfer lineage"):
+        protocol.install(retry_freeze)
+    assert protocol.copies[(target, twin_id)].pending_transfer_id == (
+        first_freeze.transfer_id
+    )
+
+    protocol.deliver_resume(resume, shard_id=target)
+    retry_install = protocol.install(retry_freeze)
+    assert retry_install.target == target
+    assert protocol.copies[(target, twin_id)].pending_transfer_id == (
+        retry_freeze.transfer_id
+    )
+
+
+def test_duplicate_install_requires_the_original_staging_lineage() -> None:
+    protocol, _source, target, twin_id, install = _staged_handover()
+    freeze = protocol.handovers[install.transfer_id].freeze
+
+    assert protocol.install(freeze) == install
+    staged = protocol.copies[(target, twin_id)]
+    protocol.copies[(target, twin_id)] = replace(
+        staged,
+        mode=OwnerMode.DISCARDED,
+        pending_transfer_id=None,
+    )
+
+    with pytest.raises(ProtocolError, match="no longer matches target staging"):
+        protocol.install(freeze)
+
+
 def test_activation_delivery_is_idempotent_after_owner_change() -> None:
     protocol, source, target, twin_id, install = _staged_handover()
     activation = protocol.commit_activate(install)
@@ -336,6 +528,26 @@ def test_activation_delivery_is_idempotent_after_owner_change() -> None:
     assert protocol.copies[(target, twin_id)].mode is OwnerMode.ACTIVE
     assert len(protocol.owner_history[twin_id]) == 2
     protocol.assert_authoritative_invariants(twin_id)
+
+
+def test_stale_activate_delivery_cannot_serve_an_obsolete_target() -> None:
+    protocol, source, target, twin_id = _protocol()
+    first_freeze = protocol.freeze(twin_id=twin_id, target=target)
+    first_install = protocol.install(first_freeze)
+    first_activate = protocol.commit_activate(first_install)
+    protocol.deliver_activate(first_activate, shard_id=source)
+    protocol.deliver_activate(first_activate, shard_id=target)
+
+    second_freeze = protocol.freeze(twin_id=twin_id, target=source)
+    second_install = protocol.install(second_freeze)
+    second_activate = protocol.activate(second_install)
+    assert protocol.active_twin(twin_id).owner == source
+
+    protocol.deliver_activate(first_activate, shard_id=target)
+
+    assert protocol.copies[(target, twin_id)].mode is OwnerMode.FENCED
+    assert protocol.active_twin(twin_id).owner == source
+    assert second_activate.target == source
 
 
 def test_decision_waits_for_successor_activation() -> None:
@@ -593,6 +805,82 @@ def test_restore_rejects_yes_certificate_not_bound_by_decision_record() -> None:
         protocol.restore_decision_evidence(decision, (forged_yes,))
 
 
+def test_restore_accepts_alternate_valid_signers_for_the_same_records() -> None:
+    protocol, _source, _target, twin_id = _protocol()
+    tx_id = "tx-restore-alternate-signers"
+    yes = protocol.prepare(
+        tx_id=tx_id,
+        twin_id=twin_id,
+        participant_set=(twin_id,),
+        reads=(),
+        writes=(WriteIntent("value", "37"),),
+        locks=("value",),
+    )
+    decision = protocol.decide(
+        tx_id=tx_id,
+        decision=Decision.COMMIT,
+        participant_set=(twin_id,),
+        yes_certificates=(yes,),
+    )
+    yes_group = protocol.registry.group(yes.proof.group_id)
+    decision_group = protocol.registry.group(decision.proof.group_id)
+    alternate_yes = replace(
+        yes,
+        proof=replace(yes.proof, signers=yes_group.members[1:]),
+    )
+    alternate_decision = replace(
+        decision,
+        proof=replace(decision.proof, signers=decision_group.members[1:]),
+    )
+
+    assert alternate_yes.subject_hash == yes.subject_hash
+    assert alternate_decision.record_digest == decision.record_digest
+    assert alternate_yes.verify(protocol.registry, expected_group_id=yes.proof.group_id)
+    assert alternate_decision.verify(
+        protocol.registry, expected_group_id=decision.proof.group_id
+    )
+
+    protocol.restore_decision_evidence(alternate_decision, (alternate_yes,))
+
+    assert protocol.yes_history[(tx_id, twin_id)] is yes
+    assert protocol.decisions[tx_id] is decision
+
+
+def test_prepare_retry_accepts_an_alternate_valid_yes_signer_subset() -> None:
+    protocol, source, _target, twin_id = _protocol()
+    tx_id = "tx-prepare-alternate-signers"
+    arguments = {
+        "tx_id": tx_id,
+        "twin_id": twin_id,
+        "participant_set": (twin_id,),
+        "reads": (),
+        "writes": (WriteIntent("value", "38"),),
+        "locks": ("value",),
+    }
+    issued = protocol.prepare(**arguments)
+    source_copy = protocol.copies[(source, twin_id)]
+    obligation = source_copy.capsule.obligation(tx_id)
+    assert obligation is not None
+    group = protocol.registry.group(issued.proof.group_id)
+    alternate = replace(
+        issued,
+        proof=replace(issued.proof, signers=group.members[1:]),
+    )
+    protocol.copies[(source, twin_id)] = replace(
+        source_copy,
+        capsule=replace(
+            source_copy.capsule,
+            prepared=(replace(obligation, yes_certificate=alternate),),
+        ),
+    )
+
+    retry = protocol.prepare(**arguments)
+
+    assert retry is alternate
+    assert retry.subject_hash == issued.subject_hash
+    assert protocol.yes_history[(tx_id, twin_id)] is issued
+
+
 def test_restore_rejects_yes_certificate_from_wrong_source_group() -> None:
     protocol, source, target, twin_id = _protocol()
     tx_id = "tx-restore-source"
@@ -664,3 +952,19 @@ def test_resume_keeps_the_source_epoch_and_discards_staging_copy() -> None:
     assert protocol.copies[(target, twin_id)].mode is OwnerMode.DISCARDED
     assert len(protocol.owner_history[twin_id]) == 1
     protocol.assert_authoritative_invariants(twin_id)
+
+
+def test_stale_resume_delivery_cannot_reactivate_an_obsolete_source() -> None:
+    protocol, source, target, twin_id, first_install = _staged_handover()
+    first_freeze = protocol.handovers[first_install.transfer_id].freeze
+    first_resume = protocol.resume(first_freeze)
+
+    second_freeze = protocol.freeze(twin_id=twin_id, target=target)
+    second_install = protocol.install(second_freeze)
+    protocol.activate(second_install)
+    assert protocol.active_twin(twin_id).owner == target
+
+    protocol.deliver_resume(first_resume, shard_id=source)
+
+    assert protocol.copies[(source, twin_id)].mode is OwnerMode.FENCED
+    assert protocol.active_twin(twin_id).owner == target

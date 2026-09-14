@@ -140,6 +140,8 @@ class Carry2PC:
         twin = self._copy(owner_certificate.owner, twin_id)
         if twin.mode is not OwnerMode.ACTIVE:
             raise ProtocolError(f"current owner is not active for twin {twin_id}")
+        if twin.pending_transfer_id is not None:
+            raise ProtocolError("active owner has an unresolved transfer lineage")
         if twin.epoch != owner_certificate.epoch:
             raise ProtocolError("owner certificate epoch does not match active twin")
         return twin
@@ -159,15 +161,50 @@ class Carry2PC:
         participants = tuple(sorted(participant_set))
         if twin_id not in participants:
             raise ProtocolError("participant set must contain the prepared twin")
-        if (tx_id, twin_id) in self.yes_history:
-            existing = twin.capsule.obligation(tx_id)
-            if existing is None:
-                raise ProtocolError(
-                    "durable YES exists without an unresolved obligation"
-                )
-            return existing.yes_certificate
+        if twin.capsule.tombstone(tx_id) is not None:
+            raise ProtocolError("transaction already has a terminal decision")
         normalized_locks = tuple(sorted(locks))
+        normalized_reads = tuple(sorted(reads))
         normalized_writes = tuple(sorted(writes))
+        normalized_commands = tuple(commands)
+        for command_index, command in enumerate(normalized_commands):
+            expected_id = stable_command_id(twin_id, tx_id, command_index)
+            if command.command_id != expected_id:
+                raise ProtocolError(
+                    "command_id must be derived from twin_id, tx_id, and command index"
+                )
+        existing = twin.capsule.obligation(tx_id)
+        if existing is not None:
+            retry_record = PreparedRecord(
+                tx_id=tx_id,
+                participant_set=participants,
+                reads=normalized_reads,
+                writes=normalized_writes,
+                locks=normalized_locks,
+                commands=normalized_commands,
+                prepare_epoch=existing.record.prepare_epoch,
+            )
+            if retry_record != existing.record:
+                raise ProtocolError("prepared transaction record cannot be rebound")
+            self._validate_obligation(existing, twin_id, "existing prepared")
+            issued = self.yes_history.get((tx_id, twin_id))
+            if issued is not None:
+                if not issued.verify(
+                    self.registry,
+                    expected_group_id=self._yes_group_id(issued),
+                ):
+                    raise ProtocolError("durable prepared YES certificate is invalid")
+                if issued.subject_hash != existing.yes_certificate.subject_hash:
+                    raise ProtocolError("durable YES conflicts with prepared obligation")
+            self._validate_yes_source_binding(existing.yes_certificate)
+            if not existing.yes_certificate.verify(
+                self.registry,
+                expected_group_id=self._yes_group_id(existing.yes_certificate),
+            ):
+                raise ProtocolError("existing prepared YES certificate is invalid")
+            return existing.yes_certificate
+        if (tx_id, twin_id) in self.yes_history:
+            raise ProtocolError("durable YES exists without an unresolved obligation")
         uncovered_writes = {write.key for write in normalized_writes}.difference(
             normalized_locks
         )
@@ -183,17 +220,10 @@ class Carry2PC:
         overlap = held_locks.intersection(normalized_locks)
         if overlap:
             raise ProtocolError(f"conflicting locks are held: {sorted(overlap)}")
-        normalized_commands = tuple(commands)
-        for command_index, command in enumerate(normalized_commands):
-            expected_id = stable_command_id(twin_id, tx_id, command_index)
-            if command.command_id != expected_id:
-                raise ProtocolError(
-                    "command_id must be derived from twin_id, tx_id, and command index"
-                )
         record = PreparedRecord(
             tx_id=tx_id,
             participant_set=participants,
-            reads=tuple(sorted(reads)),
+            reads=normalized_reads,
             writes=normalized_writes,
             locks=normalized_locks,
             commands=normalized_commands,
@@ -359,8 +389,13 @@ class Carry2PC:
         ):
             raise ProtocolError("invalid DecisionQC during evidence restore")
         existing = self.decisions.get(decision_certificate.tx_id)
-        if existing is not None and existing != decision_certificate:
-            raise ProtocolError("conflicting durable TDS record during restore")
+        if existing is not None:
+            if not existing.verify(
+                self.registry, expected_group_id=self.decision_group
+            ):
+                raise ProtocolError("registered durable TDS record is invalid")
+            if existing.record_digest != decision_certificate.record_digest:
+                raise ProtocolError("conflicting durable TDS record during restore")
         certificates = tuple(yes_certificates)
         by_twin = {certificate.twin_id: certificate for certificate in certificates}
         if len(by_twin) != len(certificates):
@@ -405,21 +440,56 @@ class Carry2PC:
                 expected_group_id=self._yes_group_id(certificate),
             ):
                 raise ProtocolError("invalid YES certificate during evidence restore")
-            if prior is not None and prior != certificate:
-                raise ProtocolError("conflicting durable YES record during restore")
+            if prior is not None:
+                if not prior.verify(
+                    self.registry,
+                    expected_group_id=self._yes_group_id(prior),
+                ):
+                    raise ProtocolError("registered durable YES record is invalid")
+                if prior.subject_hash != certificate.subject_hash:
+                    raise ProtocolError("conflicting durable YES record during restore")
             self._validate_yes_source_binding(
                 certificate, expected_group_id=expected_group
             )
-            restored.append(((certificate.tx_id, twin_id), certificate))
+            if prior is None:
+                restored.append(((certificate.tx_id, twin_id), certificate))
         for key, certificate in restored:
             self.yes_history[key] = certificate
-        self.decisions[decision_certificate.tx_id] = decision_certificate
+        if existing is None:
+            self.decisions[decision_certificate.tx_id] = decision_certificate
 
     def freeze(self, *, twin_id: str, target: str) -> FreezeCertificate:
+        owner_certificate = self._owner_certificate(twin_id)
+        source_twin = self._copy(owner_certificate.owner, twin_id)
+        if source_twin.mode is OwnerMode.FROZEN:
+            transfer_id = source_twin.pending_transfer_id
+            if transfer_id is None:
+                raise ProtocolError("frozen source lacks a pending transfer lineage")
+            handover = self._handover(transfer_id)
+            existing = handover.freeze
+            if existing.target != target:
+                raise ProtocolError(
+                    "source is already frozen for a different handover target"
+                )
+            if (
+                existing.twin_id != twin_id
+                or existing.source != source_twin.owner
+                or existing.epoch != source_twin.epoch
+                or existing.capsule_root != source_twin.capsule_root
+                or existing.owner_certificate_digest != owner_certificate.digest
+            ):
+                raise ProtocolError(
+                    "pending transfer lineage does not match its stored FreezeQC"
+                )
+            if not existing.verify(
+                self.registry,
+                expected_group_id=self.shard_group(existing.source),
+            ):
+                raise ProtocolError("stored FreezeQC failed quorum verification")
+            return existing
         source_twin = self.active_twin(twin_id)
         if target == source_twin.owner:
             raise ProtocolError("handover target must differ from source")
-        owner_certificate = self._owner_certificate(twin_id)
         self._log_cut += 1
         transfer_id = stable_hash(
             "carry2pc.transfer.v1",
@@ -471,6 +541,16 @@ class Carry2PC:
         if handover.terminal:
             raise ProtocolError("cannot install after terminal handover outcome")
         if handover.install is not None:
+            target = self._copy(freeze.target, freeze.twin_id)
+            if (
+                target.mode is not OwnerMode.STAGING
+                or target.pending_transfer_id != freeze.transfer_id
+                or target.epoch != handover.install.new_epoch
+                or target.capsule_root != handover.install.capsule_root
+            ):
+                raise ProtocolError(
+                    "stored InstallQC no longer matches target staging state"
+                )
             return handover.install
         current_owner = self._owner_certificate(freeze.twin_id)
         if not current_owner.verify(
@@ -490,6 +570,16 @@ class Carry2PC:
             or source.capsule_root != freeze.capsule_root
         ):
             raise ProtocolError("source no longer matches certified freeze cut")
+        target_key = (freeze.target, freeze.twin_id)
+        prior_target = self.copies.get(target_key)
+        if prior_target is not None:
+            if prior_target.pending_transfer_id is not None:
+                raise ProtocolError(
+                    "target has an unresolved local transfer lineage; "
+                    "deliver its terminal certificate before retrying Install"
+                )
+            if prior_target.mode is OwnerMode.ACTIVE:
+                raise ProtocolError("handover target is still an active owner")
         wire_capsule = (
             capsule_to_bytes(source.capsule)
             if capsule_bytes is None
@@ -512,7 +602,7 @@ class Carry2PC:
         self._validate_capsule(
             staged, expected_yes_group_ids=expected_source_groups
         )
-        self.copies[(freeze.target, freeze.twin_id)] = staged
+        self.copies[target_key] = staged
         certificate = self.issuer.install(
             group_id=self.shard_group(freeze.target),
             transfer_id=freeze.transfer_id,
@@ -554,8 +644,14 @@ class Carry2PC:
         ):
             raise ProtocolError("source freeze lineage does not match InstallQC")
         previous_owner = self._owner_certificate(install.twin_id)
-        if previous_owner.epoch + 1 != install.new_epoch:
-            raise ProtocolError("InstallQC does not extend the current ownership epoch")
+        freeze = handover.freeze
+        if (
+            previous_owner.digest != freeze.owner_certificate_digest
+            or previous_owner.owner != install.source
+            or previous_owner.epoch != freeze.epoch
+            or previous_owner.epoch + 1 != install.new_epoch
+        ):
+            raise ProtocolError("InstallQC does not extend the current ownership head")
         new_owner = self.issuer.owner(
             group_id=self.ownership_group,
             twin_id=install.twin_id,
@@ -597,6 +693,21 @@ class Carry2PC:
         install = handover.install
         if install is None:
             raise ProtocolError("activation has no matching InstallQC")
+        successor_owner = handover.successor_owner
+        if (
+            successor_owner is None
+            or certificate.owner_certificate_digest != successor_owner.digest
+            or successor_owner.owner != install.target
+            or successor_owner.epoch != install.new_epoch
+        ):
+            raise ProtocolError("ActivateQC lacks the certified successor owner")
+        current_owner = self._owner_certificate(install.twin_id)
+        if (
+            current_owner.digest != successor_owner.digest
+            or current_owner.owner != install.target
+            or current_owner.epoch != install.new_epoch
+        ):
+            return
         if shard_id not in {install.source, install.target}:
             raise ProtocolError("ActivateQC endpoint is not part of this handover")
         if shard_id == install.target:
@@ -656,8 +767,9 @@ class Carry2PC:
         if (
             owner_certificate.owner != freeze.source
             or owner_certificate.epoch != freeze.epoch
+            or owner_certificate.digest != freeze.owner_certificate_digest
         ):
-            raise ProtocolError("ownership advanced before resume")
+            raise ProtocolError("ownership head changed before resume")
         certificate = self.issuer.resume(
             group_id=self.ownership_group,
             transfer_id=freeze.transfer_id,
@@ -686,6 +798,13 @@ class Carry2PC:
         if handover.resume is None or handover.resume.digest != certificate.digest:
             raise ProtocolError("ResumeQC is not the OS terminal record")
         freeze = handover.freeze
+        current_owner = self._owner_certificate(freeze.twin_id)
+        if (
+            current_owner.digest != certificate.owner_certificate_digest
+            or current_owner.owner != freeze.source
+            or current_owner.epoch != freeze.epoch
+        ):
+            return
         if shard_id not in {freeze.source, freeze.target}:
             raise ProtocolError("ResumeQC endpoint is not part of this handover")
         if shard_id == freeze.source:
